@@ -244,3 +244,294 @@ target_include_libraries(test PUBLIC lib)
 #### PRIVATE
 - producer는 필요하지만 consumer에게는 숨기고 싶은 경우 사용
 - consumer는 producer에서 PRIVATE으로 지정한 라이브러리와 include directory를 알 수 없음
+
+## 라이브러리를 외부에서 사용할 수 있도록 export하는 법
+### Step 1) 간단한 정적 라이브러리 프로젝트에서 시작하자
+```
+mylib/
+├─ include/
+│  ├─ mylib.h
+├─ mylib.cpp
+├─ CMakeLists.txt
+```
+```cmake
+# mylib/CMakeLists.txt
+cmake_minimum_required(VERSION 3.10)
+
+project(mylib)
+
+add_library(mylib STATIC mylib.cpp)
+target_include_directories(mylib PUBLIC include)
+```
+### Step 2) 바이너리와 헤더를 원하는 장소에 설치할 수 있게 install 규칙을 추가하자
+```cmake
+cmake_minimum_required(VERSION 3.10)
+
+project(mylib)
+
+add_library(mylib STATIC mylib.cpp)
+target_include_directories(mylib PUBLIC include)
+
+# 사용자 입장에선 .lib 그리고 .h 파일만 있으면 된다.
+install(TARGETS mylib DESTINATION lib)
+install(FILES include/mylib.h DESTINATION include)
+```
+이제 빌드를 한 후 시험삼아 somewhere라는 폴더에 install해보자.
+```
+cmake -S . -B build
+cmake --build build --config Debug
+cmake --install build --config Debug --prefix ../somewhere
+```
+성공했다면 아래와 같이 somewhere 폴더가 생겼을 것이다
+```
+somewhere/
+├─ lib/
+│  ├─ mylib.lib
+├─ include/
+│  ├─ mylib.h
+mylib/
+├─ include/
+│  ├─ mylib.h
+├─ mylib.cpp
+├─ CMakeLists.txt
+```
+### Step 3) Debug와 Release 버전의 바이너리를 모두 install할 수 있게 만들자
+지금은 install할 때마다 lib/mylib.lib 파일을 덮어쓰기 때문에  
+Debug로 빌드한 lib 파일과 Release로 빌드한 lib 파일을 동시에 가질 수가 없다.  
+참고로 프로젝트의 빌드 타입과 라이브러리의 빌드 타입이 다르면 에러가 생기므로 어떻게든 이 문제를 해결해야 한다!  
+이번엔 ```$<CONFIG>```라는 generator expression을 사용해 복사할 폴더를 빌드 타입에 따라 달라지게 만들 것이다.
+```cmake
+cmake_minimum_required(VERSION 3.10)
+
+project(mylib)
+
+add_library(mylib STATIC mylib.cpp)
+target_include_directories(mylib PUBLIC include)
+
+# $<CONFIG>는 빌드 타입에 따라 "Debug" 또는 "Release"의 값을 갖는다
+install(TARGETS mylib DESTINATION lib/$<CONFIG>)
+install(FILES include/mylib.h DESTINATION include)
+```
+이제 Debug와 Release로 각각 빌드 및 install을 수행하면 somewhere 폴더가 아래와 같이 생성된다.
+```
+somewhere/
+├─ lib/
+│  ├─ Debug/
+│  │  ├─ mylib.lib <-- Debug로 빌드한 바이너리
+│  ├─ Release/
+│  │  ├─ mylib.lib <-- Release로 빌드한 바이너리
+├─ include/
+│  ├─ mylib.h
+mylib/
+├─ include/
+│  ├─ mylib.h
+├─ mylib.cpp
+├─ CMakeLists.txt
+```
+### Step 4) ```install(EXPORT ...)```를 사용해 imported target을 만들자
+```cmake
+cmake_minimum_required(VERSION 3.10)
+
+project(mylib)
+
+add_library(mylib STATIC mylib.cpp)
+
+# install(EXPORT ...)를 사용하려면 build와 install의 include directory 설정을 개별적으로 해줘야 한다.
+# INSTALL_INTERFACE 뒤에 오는 상대 경로는 CMAKE_INSTALL_PREFIX를 기준으로 계산된다.
+#
+# 주의: install()과 마찬가지로 명시적으로 ${CMAKE_INSTALL_PREFIX}를 사용하면 cmake --install의 --prefix 옵션을 무시한다
+#
+# BUILD_INTERFACE에 상대 경로를 넣으면 에러가 떠서 ${CMAKE_SOURCE_DIR}을 사용했다.
+# 원인은 아직 모르겠지만 지금까지 본 예시에선 다 이렇게 하더라.
+target_include_directories(mylib PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+install(TARGETS mylib
+    EXPORT mylibTargets # TARGETS로 지정된 모든 target을 포함하는 export set을 생성 (이름은 자유)
+    DESTINATION lib/$<CONFIG>
+
+    # mylib를 사용하는 외부 프로젝트의 target에 해당 경로를 include directory로 추가해준다
+    # 이번 예시에선 mylib이 PUBLIC으로 target_include_directories()를 실행했으므로 생략해도 차이는 없다.
+    # 만약 일부 헤더만 public header로 공개하려 한다면 이 방법이 필요할 것이다.
+    INCLUDES DESTINATION include
+)
+install(FILES include/mylib.h DESTINATION include)
+
+# mylibTargets.cmake라는 파일을 생성하고 lib/cmake/mylib 폴더에 복사한다.
+# 거의 대부분 lib/cmake/[패키지 이름] 폴더에 이런 파일을 넣는다고 한다.
+# 뒤에서 언급하겠지만, 이렇게 하면 find_package를 위해 CMAKE_PREFIX_PATH 설정이 깔끔하다.
+install(EXPORT mylibTargets
+    FILE mylibTargets.cmake # 생략해도 같은 이름으로 생기던데 어째서인지 모든 예제에서 이걸 빼놓지 않았음
+    NAMESPACE mylib:: # NAMESPACE를 지정하면 모든 target 앞에 prefix를 붙일 수 있다 (필수 x)
+    DESTINATION lib/cmake/mylib
+)
+```
+Debug와 Release로 빌드 및 install을 해보면 somewhere/lib/cmake/mylib 폴더에 세 개의 파일이 생긴다
+```
+somewhere/
+├─ lib/
+│  ├─ Debug/
+│  │  ├─ mylib.lib
+│  ├─ Release/
+│  │  ├─ mylib.lib
+│  ├─ cmake
+│  │  ├─ mylib/
+│  │  │  ├─ mylibTargets-debug.cmake
+│  │  │  ├─ mylibTargets-release.cmake
+│  │  │  ├─ mylibTargets.cmake
+├─ include/
+│  ├─ mylib.h
+mylib/
+├─ include/
+│  ├─ mylib.h
+├─ mylib.cpp
+├─ CMakeLists.txt
+
+```
+원래라면 mylib를 사용하기 위해서 빌드 타입에 따라 올바른 lib 파일을 선택하고 include 디렉토리를 추가하는 등  
+번거로운 작업을 일일이 해줘야하는데 이 부분을 자동으로 생성한 CMakeLists.txt라고 생각하면 된다.  
+실제로 somewhere/lib/cmake/mylib/mylibTargets.cmake를 열어보면 흔히 사용하는 ```add_library()```같은 내용이 들어있다.  
+NAMESPACE 옵션의 영향으로 앞에 mylib::가 추가된 것도 확인할 수 있다.
+```cmake
+# Create imported target mylib::mylib
+add_library(mylib::mylib STATIC IMPORTED)
+```
+이제 외부 프로젝트의 CMakeLists.txt에 딱 두 줄만 추가하면 mylib를 사용할 수 있다
+```cmake
+# test라는 프로젝트에서 mylib를 사용한다고 가정하자
+add_executable(test main.cpp)
+
+# 1. 아까 생성한 cmake파일을 #include처럼 복붙해서 mylib라는 imported target을 생성한다
+include(엄청복잡한경로/somewhere/lib/cmake/mylib/mylibTargets.cmake)
+
+# 2. 사용하려는 주체인 test에 링크해주면 끝!
+# 아까 target_include_directories()에서 PUBLIC으로 지정했기 때문에
+# 추가적인 설정 없이 mylib.h도 사용할 수 있다.
+target_link_libraries(test PUBLIC mylib::mylib)
+```
+### Step 5) ```find_package()```를 사용할 수 있도록 config.cmake 파일을 생성하자
+find_package()를 사용하면 xxxConfig.cmake 형식의 파일을 자동으로 찾을 수 있다.  
+cmake에서 외부 라이브러리를 참조할 때 권장하는 방법이므로 우리도 따라해보자.  
+Q) 그냥 mylibTargets의 이름을 mylibConfig로 바꾸면 되는거 아닌가?  
+A) 이름이 Config.cmake로 끝나니 될 것 같기도 하지만... 일단 공식 튜토리얼은 다른 방법을 쓰라고 한다
+```
+# 전체적인 과정
+1. config파일의 틀을 작성한다
+2. cmake의 helper function으로 부족한 내용을 채운 mylibConfig.cmake를 만든다
+3. 외부 프로젝트에서 find_package()를 사용해 mylibConfig.cmake파일을 찾는다
+4. mylibConfig.cmake가 mylibTargets.cmake를 include()한다
+```
+조금 번거롭긴 하지만, 파일 존재 여부 등 안전 체크를 자동으로 해주는 등 몇가지 장점이 있다고 한다.  
+일단 config파일의 틀이 될 mylibConfig.cmake.in이라는 파일을 새로 만들자
+```cmake
+# helper function이 채워넣을 부분.
+# 필요한 파일과 컴포넌트가 존재하는지 체크하는 코드가 들어가는 것 같다.
+@PACKAGE_INIT@
+
+# find_package()는 이 파일을 include()하는 것과 같은 효과를 내기 때문에 CMAKE_CURRENT_LIST_DIR을 사용해야 한다.
+# 참고:
+# 1. CMAKE_CURRENT_SOURCE_DIR
+# - 현재 처리중인 CMakeLists.txt의 경로.
+# - include()한 파일의 경로를 따라가므로 find_package()를 하면 외부 프로젝트의 경로를 가리키게 된다.
+# 2. CMAKE_CURRENT_LIST_DIR
+# - 실제로 이 파일이 위치한 경로.
+# - 이 파일이 include()되어도 같은 값을 유지한다.
+#   지금은 find_package()가 include()하는 상황이므로 이 경로가 적합하다.
+include(${CMAKE_CURRENT_LIST_DIR}/mylibTargets.cmake)
+```
+이제 CMakeLists.txt에서 해당 파일을 사용해 config 파일을 생성하도록 해야한다.
+```cmake
+cmake_minimum_required(VERSION 3.10)
+
+project(mylib)
+
+add_library(mylib STATIC mylib.cpp)
+target_include_directories(mylib PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+install(TARGETS mylib
+    EXPORT mylibTargets
+    DESTINATION lib/$<CONFIG>
+    INCLUDES DESTINATION include
+)
+install(FILES include/mylib.h DESTINATION include)
+
+install(EXPORT mylibTargets
+    FILE mylibTargets.cmake
+    NAMESPACE mylib::
+    DESTINATION lib/cmake/mylib
+)
+
+# mylibConfig.cmake.in 파일을 읽고 필요한 내용을 채워서
+# 빌드 디렉토리의 mylibConfig.cmake 파일을 생성한다
+include(CMakePackageConfigHelpers)
+configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/mylibConfig.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/mylibConfig.cmake
+    INSTALL_DESTINATION lib/cmake/mylib
+)
+
+# 생성된 mylibconfig.cmake 파일을 install 경로에 복사한다
+# 위에서 사용한 INSTALL_DESTINATION과 같은 경로를 사용해야 문제가 안 생긴다고 한다
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mylibConfig.cmake
+    DESTINATION lib/cmake/mylib
+)
+```
+install을 마치면 최종적으로 아래와 같은 구조를 갖게 된다
+```
+somewhere/ <-- CMAKE_PREFIX_PATH에 추가해야 하는 경로
+├─ lib/
+│  ├─ Debug/
+│  │  ├─ mylib.lib <-- Debug로 빌드한 바이너리
+│  ├─ Release/
+│  │  ├─ mylib.lib <-- Release로 빌드한 바이너리
+│  ├─ cmake/
+│  │  ├─ mylib/
+│  │  │  ├─ mylibTargets-debug.cmake <-- Debug로 빌드할 때 lib/Debug/mylib.lib을 사용하도록 설정함
+│  │  │  ├─ mylibTargets-release.cmake <-- Release로 빌드할 때 lib/Release/mylib.lib을 사용하도록 설정함
+│  │  │  ├─ mylibTargets.cmake <-- add_library()등 실질적인 세팅을 하는 파일
+│  │  │  ├─ mylibConfig.cmake <-- find_package()가 탐색하는 파일
+├─ include/
+│  ├─ mylib.h <-- Debug, Release 상관 없이 필요한 public header
+mylib/
+├─ include/
+│  ├─ mylib.h
+├─ mylib.cpp
+├─ mylibConfig.cmake.in <-- mylibConfig.cmake를 만들기 위한 틀
+├─ CMakeLists.txt
+```
+외부 프로젝트에서 mylib을 사용하려면 다음과 같이 하면 된다.
+```cmake
+cmake_minimum_required(VERSION 3.10)
+
+project(myexec)
+
+# cmake에서 정해둔 기본 경로에 있는 경우 find_package()만 해도 되지만
+# 우리처럼 custom 경로를 사용하려면 CMAKE_INSTALL_PREFIX에 추가해줘야한다.
+#
+# somewhere 폴더를 넘겨주면 자동으로 somewhere/lib/cmake/mylib 폴더에서
+# mylibConfig.cmake 또는 mylib-config.cmake가 존재하는지 확인한다.
+#
+# somewhere/lib/cmake/mylib까지 넘겨줘도 되지만 귀찮으니 그러지 말자
+list(APPEND CMAKE_PREFIX_PATH 엄청복잡한경로/somewhere)
+
+# config 모드로 find_package()를 호출하면 xxxConfig.cmake 형식의 파일을 탐색한다.
+# 자매품으로 module 모드도 있다.
+# 참고)
+# 1. REQUIRED: 못 찾으면 에러 발생
+# 2. QUIET: 못 찾아도 에러 없이 진행
+find_package(mylib CONFIG REQUIRED)
+
+add_executable(myexec main.cpp)
+target_link_libraries(myexec mylib::mylib)
+```
+이렇게 완성한 install 폴더는 절대경로를 사용하지 않고 relocatable하기 때문에  
+somewhere 폴더를 이리저리 옮겨도 CMAKE_PREFIX_PATH만 잘 지정하면 링크에 성공한다!  
+만약 캐시 변수를 사용하거나 절대 경로를 넣었다면 불가능했을 것이다.
+### 참고자료
+- [CMake 공식 export 튜토리얼](https://cmake.org/cmake/help/latest/guide/importing-exporting/index.html)
+- [CMake documentation - xxxConfig.cmake를 놓는 일반적인 위치에 대한 내용이 담긴 페이지](https://cmake.org/cmake/help/v3.22/guide/using-dependencies/index.html)
+- [CMake documentation - CMakePackageConfigHelpers](https://cmake.org/cmake/help/v3.0/module/CMakePackageConfigHelpers.html)
