@@ -276,6 +276,11 @@ project(mylib)
 add_library(mylib STATIC mylib.cpp)
 target_include_directories(mylib PUBLIC include)
 ```
+앞으로 일어날 일을 요약해보면 다음과 같다
+1. install() 함수로 .lib과 .h파일들을 외부에 독립적인 폴더 구조로 복사할 수 있게 설정한다.
+2. install(TARGETS ... EXPORT ...)로 xxxTargets라는 export set을 만든다.
+3. install(EXPORT ...)로 export set을 불러오는 코드를 담은 xxxTargets.cmake 파일을 만든다
+4. 3번 단계에서 만든 .cmake파일을 찾아 불러오고 부가적인 안전 체크를 해주는 xxxConfig.cmake 파일을 만든다.
 ### Step 2) 바이너리와 헤더를 원하는 장소에 설치할 수 있게 install 규칙을 추가하자
 ```cmake
 cmake_minimum_required(VERSION 3.10)
