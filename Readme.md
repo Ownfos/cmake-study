@@ -7,6 +7,19 @@
 - 전자는 cmake를 실행한 최상위 CMakeLists.txt의 경로
 - 후자는 add_subdirectory()로 들어간 하위 디렉토리의 경로
 
+## upstream vs downstream
+- 공식 튜토리얼을 읽다보면 upstream과 downstream이라는 표현이 자주 나온다
+- 산업, 오픈소스 프로젝트 등 다양한 분야에서 사용되는 단어지만 일단 소프트웨어 기준으로 정리해보면 아래와 같다
+```
+'downstream' depends on 'upstream'
+```
+- 예를 들어, [cmake-packages](https://cmake.org/cmake/help/latest/manual/cmake-packages.7.html#creating-packages)를 보면 다음과 같은 내용이 나온다.
+```
+upstream에서 config파일을 제공하는 경우에만 find_package()에 CONFIG 옵션을 사용해야 한다
+```
+upstream은 어떤 프로젝트가 depend-on 하는 대상이므로 라이브러리일 것이다.  
+그러므로 이 문장은 라이브러리에서 xxxConfig.cmake파일을 제공하는지 확인하라는 뜻으로 이해하면 된다.
+
 ## add_subdirectory() vs include()
 - 전자는 서브루틴처럼 하위 디렉토리로 들어가서 이뤄짐
 - 후자는 #include처럼 현재 처리중인 CMakeLists.txt에 끼어듦
@@ -339,10 +352,15 @@ add_library(mylib STATIC mylib.cpp)
 # install(EXPORT ...)를 사용하려면 build와 install의 include directory 설정을 개별적으로 해줘야 한다.
 # INSTALL_INTERFACE 뒤에 오는 상대 경로는 CMAKE_INSTALL_PREFIX를 기준으로 계산된다.
 #
-# 주의: install()과 마찬가지로 명시적으로 ${CMAKE_INSTALL_PREFIX}를 사용하면 cmake --install의 --prefix 옵션을 무시한다
+# 주의: install()과 마찬가지로 명시적으로 ${CMAKE_INSTALL_PREFIX}를 사용하면 cmake --install의 --prefix 옵션을 무시한다!
+#       relocatable한 라이브러리를 만들기 위해서는 이런 절대경로를 사용하면 안된다.
 #
 # BUILD_INTERFACE에 상대 경로를 넣으면 에러가 떠서 ${CMAKE_SOURCE_DIR}을 사용했다.
 # 원인은 아직 모르겠지만 지금까지 본 예시에선 다 이렇게 하더라.
+#
+# 참고:
+# 1. BUILD_INTERFACE: 프로젝트를 빌드할 때, install(TARGETS ...)가 실행될 때 사용됨
+# 2. INSTALL_INTERFACE: install(EXPORT ...)가 실행될 때 활성화됨
 target_include_directories(mylib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -363,7 +381,7 @@ install(FILES include/mylib.h DESTINATION include)
 # 거의 대부분 lib/cmake/[패키지 이름] 폴더에 이런 파일을 넣는다고 한다.
 # 뒤에서 언급하겠지만, 이렇게 하면 find_package를 위해 CMAKE_PREFIX_PATH 설정이 깔끔하다.
 install(EXPORT mylibTargets
-    FILE mylibTargets.cmake # 생략해도 같은 이름으로 생기던데 어째서인지 모든 예제에서 이걸 빼놓지 않았음
+    FILE mylibTargets.cmake # 생략하면 export target과 같은 이름으로 생성된다 (ex. mylibTargets.cmake)
     NAMESPACE mylib:: # NAMESPACE를 지정하면 모든 target 앞에 prefix를 붙일 수 있다 (필수 x)
     DESTINATION lib/cmake/mylib
 )
