@@ -24,16 +24,12 @@ aaa/
 
 # aaa/CMakeLists.txt
 cmake_minimum_required(VERSION 3.10)
-
 project(test)
-
 add_subdirectory(bbb)
-
 add_library(aaa aaa.cpp)
 
 # aaa/bbb/CmakeLists.txt
 add_subdirectory(ccc)
-
 add_library(bbb bbb.cpp)
 
 # aaa/bbb/ccc/CmakeLists.txt
