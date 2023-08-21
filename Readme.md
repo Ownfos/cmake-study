@@ -8,7 +8,7 @@
 - 후자는 add_subdirectory()로 들어간 하위 디렉토리의 경로
 
 ## CMAKE_BINARY_DIR vs CMAKE_CURRENT_BINARY_DIR
-- 하나의 cmake 프로젝트 디렉토리에 여러 CMakeLists.txt가 있어서 CMAKE_CURRENT_SOURCE_DIR이 필요해진 것처럼
+- 하나의 cmake 프로젝트 디렉토리에 여러 CMakeLists.txt가 있어서 CMAKE_CURRENT_SOURCE_DIR이 필요해진 것처럼  
 add_subdirectory()를 할 때마다 빌드 디렉토리에서 하위 폴더가 생기기 때문에 이들을 구분할 방법이 있어야 한다.
 ```cmake
 # 폴더 구조
