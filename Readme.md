@@ -479,7 +479,7 @@ target_link_libraries(test PUBLIC mylib::mylib)
 target_include_directories(test PUBLIC include)
 target_include_directories(test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# 진짜 같은지 궁금하면 아래 코드를 추가해 INTERFACE_INCLUDE_DIRECTORY의 값을 확인해보길 바란다.
+# 진짜 같은지 궁금하면 아래 코드를 추가해 설정된 값을 확인해보길 바란다.
 get_target_property(dir test INTERFACE_INCLUDE_DIRECTORIES)
 message(${dir})
 
