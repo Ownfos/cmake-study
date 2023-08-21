@@ -7,6 +7,50 @@
 - 전자는 cmake를 실행한 최상위 CMakeLists.txt의 경로
 - 후자는 add_subdirectory()로 들어간 하위 디렉토리의 경로
 
+## CMAKE_BINARY_DIR vs CMAKE_CURRENT_BINARY_DIR
+- 하나의 cmake 프로젝트 디렉토리에 여러 CMakeLists.txt가 있어서 CMAKE_CURRENT_SOURCE_DIR이 필요해진 것처럼
+add_subdirectory()를 할 때마다 빌드 디렉토리에서 하위 폴더가 생기기 때문에 이들을 구분할 방법이 있어야 한다.
+```cmake
+# 폴더 구조
+aaa/
+├─ bbb/
+│  ├─ CMakeLists.txt
+│  ├─ bbb.cpp
+│  ├─ ccc/
+│  │  ├─ CMakeLists.txt
+│  │  ├─ ccc.cpp
+├─ CMakeLists.txt
+├─ aaa.cpp
+
+# aaa/CMakeLists.txt
+cmake_minimum_required(VERSION 3.10)
+
+project(test)
+
+add_subdirectory(bbb)
+
+add_library(aaa aaa.cpp)
+
+# aaa/bbb/CmakeLists.txt
+add_subdirectory(ccc)
+
+add_library(bbb bbb.cpp)
+
+# aaa/bbb/ccc/CmakeLists.txt
+add_library(ccc ccc.cpp)
+
+# 빌드 디렉토리 (Debug로 빌드한 상태의 핵심 내용만 묘사함)
+build/ <-- aaa/CMakeLists.txt의 CMAKE_CURRENT_BINARY_DIR
+├─ Debug/
+│  ├─ aaa.lib
+├─ bbb/ <-- aaa/bbb/CMakeLists.txt의 CMAKE_CURRENT_BINARY_DIR
+│  ├─ Debug/
+│  │  ├─ bbb.lib
+│  ├─ ccc/ <-- aaa/bbb/ccc/CmakeLists.txt의 CMAKE_CURRENT_BINARY_DIR
+│  │  ├─ Debug/
+│  │  │  ├─ ccc.lib
+```
+
 ## upstream vs downstream
 - 공식 튜토리얼을 읽다보면 upstream과 downstream이라는 표현이 자주 나온다
 - 산업, 오픈소스 프로젝트 등 다양한 분야에서 사용되는 단어지만 일단 소프트웨어 기준으로 정리해보면 아래와 같다
