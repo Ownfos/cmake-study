@@ -350,17 +350,14 @@ project(mylib)
 add_library(mylib STATIC mylib.cpp)
 
 # install(EXPORT ...)를 사용하려면 build와 install의 include directory 설정을 개별적으로 해줘야 한다.
-# INSTALL_INTERFACE 뒤에 오는 상대 경로는 CMAKE_INSTALL_PREFIX를 기준으로 계산된다.
+# 자세한 이유는 조금 길어져서 밑에 문단을 하나 더 만들 예정...
 #
 # 주의: install()과 마찬가지로 명시적으로 ${CMAKE_INSTALL_PREFIX}를 사용하면 cmake --install의 --prefix 옵션을 무시한다!
 #       relocatable한 라이브러리를 만들기 위해서는 이런 절대경로를 사용하면 안된다.
 #
-# BUILD_INTERFACE에 상대 경로를 넣으면 에러가 떠서 ${CMAKE_SOURCE_DIR}을 사용했다.
-# 원인은 아직 모르겠지만 지금까지 본 예시에선 다 이렇게 하더라.
-#
 # 참고:
-# 1. BUILD_INTERFACE: 프로젝트를 빌드할 때, install(TARGETS ...)가 실행될 때 사용됨
-# 2. INSTALL_INTERFACE: install(EXPORT ...)가 실행될 때 활성화됨
+# 1. BUILD_INTERFACE: 프로젝트를 빌드할 때, install(TARGETS ...)가 실행될 때 사용됨. 절대 경로가 들어가야 한다.
+# 2. INSTALL_INTERFACE: install(EXPORT ...)가 실행될 때 활성화됨. 절대 경로는 넣지 말자.
 target_include_directories(mylib PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
@@ -429,6 +426,49 @@ include(엄청복잡한경로/somewhere/lib/cmake/mylib/mylibTargets.cmake)
 # 추가적인 설정 없이 mylib.h도 사용할 수 있다.
 target_link_libraries(test PUBLIC mylib::mylib)
 ```
+#### 외전: target_include_directories()에서 build interface와 install interface를 각각 설정해야 하는 이유
+```cmake
+# 실제로 파일을 빌드하려면 언젠간 절대경로가 필요해진다.
+# 그래서 target_include_directories()는 상대경로를 넘겨주면 call site에서 바로 절대경로로 변환해버린다.
+# 그러므로 아래 두 줄은 결과적으로 같아진다
+target_include_directories(test PUBLIC include)
+target_include_directories(test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+# 진짜 같은지 궁금하면 아래 코드를 추가해 INTERFACE_INCLUDE_DIRECTORY의 값을 확인해보길 바란다.
+get_target_property(dir test INTERFACE_INCLUDE_DIRECTORIES)
+message(${dir})
+
+# 그런데 절대 경로를 사용해버리면 relocatability에 문제가 생긴다.
+# 위에서 지정한 include directory는 무조건 현재 빌드 트리를 가리키기때문에
+# install로 헤더를 복사해봤자 사용할 수가 없다.
+# 그렇기에 install(EXPORT ...)로 생성한 타겟에는 해당 위치의 헤더를 사용하라고 지시할 방법이 필요한 것이다.
+# 그렇게 나온 해법이 BUILD_INTERFACE와 INSTALL_INTERFACE라는 generator expression을 사용하는 것!
+target_include_directories(test PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+# 실제로 install(EXPORT ...)로 생성된 .cmake 파일을 열어보면 아래와 같은 코드를 찾을 수 있다.
+# 물론 여기에도 install prefix를 직접 박아버리면 relocatability를 잃어버리므로
+# 이 .cmake 파일을 include()할 upstream 프로젝트에서 처리할 수 있게 ${_IMPORT_PREFIX}라는 변수를 활용한다.
+add_library(test STATIC IMPORTED)
+set_target_properties(test PROPERTIES
+  INTERFACE_INCLUDE_DIRECTORIES "${_IMPORT_PREFIX}/include"
+)
+
+# 근데 왜 갑자기 BUILD_INTERFACE에 없던 ${CMAKE_CURRENT_SOURCE_DIR}을 추가해 절대 경로를 넘겨줬을까?
+# CMake 개발자인 Brad King에 의하면 generator expression을 사용하는 순간
+# 결과물이 절대 경로로 나올지, 상대 경로로 나올지 알 수 없어서 일단 절대 경로로 간주한다고 한다.
+# 즉, 자동으로 prefix를 붙여주지 않기 때문에 우리가 직접 절대 경로를 넘겨줘야 하는 것이다.
+# 어찌되었건 빌드할 때 필요한 건 절대 경로니까!
+# 아래처럼 사용하면 include 경로에 상대 경로를 줬다며 에러가 발생한다.
+target_include_directories(test PUBLIC
+    $<BUILD_INTERFACE:include>
+    $<INSTALL_INTERFACE:include>
+)
+```
+- [Brad King이 관련 issue에 남긴 댓글](https://gitlab.kitware.com/cmake/cmake/-/issues/19802)
+
 ### Step 5) ```find_package()```를 사용할 수 있도록 config.cmake 파일을 생성하자
 find_package()를 사용하면 xxxConfig.cmake 형식의 파일을 자동으로 찾을 수 있다.  
 cmake에서 외부 라이브러리를 참조할 때 권장하는 방법이므로 우리도 따라해보자.  
