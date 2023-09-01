@@ -66,6 +66,7 @@ upstream은 어떤 프로젝트가 depend-on 하는 대상이므로 라이브러
 - include()는 현재 CMakeLists.txt에서 선언된 변수를 읽고 수정할 수 있음
 
 ## Debug또는 Release로 빌드하기
+#### 가능한 빌드 타입으로는 Debug, Release, RelWithDebInfo, MinSizeRel 네 가지가 있다
 #### 1. visual studio를 비롯한 multi-configuration generator를 사용하는 경우
 ```
 cmake -S . -B build
@@ -638,3 +639,21 @@ somewhere 폴더를 이리저리 옮겨도 CMAKE_PREFIX_PATH만 잘 지정하면
 - [CMake 공식 export 튜토리얼](https://cmake.org/cmake/help/latest/guide/importing-exporting/index.html)
 - [CMake documentation - xxxConfig.cmake를 놓는 일반적인 위치에 대한 내용이 담긴 페이지](https://cmake.org/cmake/help/v3.22/guide/using-dependencies/index.html)
 - [CMake documentation - CMakePackageConfigHelpers](https://cmake.org/cmake/help/v3.0/module/CMakePackageConfigHelpers.html)
+
+
+## vscode에서 cmake tools extension 사용하기
+### 기본적인 정보
+- 프로젝트 폴더에서 ctrl+p로 커맨드 팔레트를 열면 CMake: Configure라는 명령이 보인다.  
+  만약 오른쪽 아래에 뜨는 팝업 메시지를 놓쳤다면 이렇게 수동으로 configure를 해줄 수 있다.
+  한 번 configure 해주면 cmakelists.txt가 수정될때마다 자동으로 configure를 다시 해준다!
+- 화면 하단 바에서 빌드 타입, 컴파일러, 빌드 버튼, 디버그 버튼, 실행 버튼을 찾을 수 있다.  
+  굳이 명령어를 치지 않아도 이 버튼들을 통해 같은 작업을 할 수 있어서 매우 편리하다.  
+  단, install에 --prefix옵션을 넘기는건 없는 듯 하니 터미널 켜서 직접 해주자.
+### 디버그를 시작했는데 std::cout 등 출력이 아무 곳에도 보이지 않는 문제 해결
+- 일반 실행과 다르게 디버그는 설정이 다르게 되어있는지 .vscode/settings.json을 수정해야했다.
+- 파일 안에 아래와 같은 내용을 끼워넣으면 terminal 탭에 정상적으로 출력된다.
+```json
+"cmake.debugConfig": {
+    "console": "integratedTerminal"
+}
+```
