@@ -745,3 +745,22 @@ gtest_discover_tests(mytest)
 - 아래에 TERMINAL 탭 옆에 TEST RESULTS 탭이 생기며 실행한 테스트를 시간대별로 확인할 수 있다.
 - 왼쪽 Testing 탭에서는 마지막 테스트 결과를 빨간 체크와 초록 체크로 시각적으로 확인할 수 있고  
   여러 테스트 중 하나만 골라서 실행하는 것도 가능하다.
+
+## 유닛테스트 target을 위한 꼼수: main.cpp를 제외한 모든 코드를 모아서 라이브러리로 만들기
+#### 문제 상황
+- .cpp 파일을 백 개 정도 사용하는 calculator 프로젝트를 만들었다고 가정하자.
+- 당신은 유닛 테스트를 추가하려고 ```add_executable(test```를 타이핑하는 순간  
+  그 뒤에 add_executable(calculator ...)에 들어간 모든 cpp 파일을 다시 적어줘야 한다는 것을 깨닫는다!
+- 귀찮음도 귀찮음이지만 두 개의 CMakeLists.txt에서 중복된 내용을 적는다는 것은 그 자체로 위험성이 있다
+#### 해결법
+- calculator에 사용된 소스 파일의 이름이 source1.cpp ~ source100.cpp 그리고 main.cpp라고 가정한다면 아래와 같이 작성하면 된다
+```cmake
+# 기존 calculator를 calculator_lib과 calculator로 분리
+add_library(calculator_lib source1.cpp source2.cpp (중간 생략) source100.cpp)
+add_executable(calculator main.cpp)
+target_link_libraries(calculator PRIVATE calculator_lib)
+
+# 유닛 테스트 target은 calculator_lib를 가져와서 사용함
+add_executable(test test.cpp)
+target_link_libraries(test PRIVATE calculator_lib)
+```
