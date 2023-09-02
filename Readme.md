@@ -644,7 +644,7 @@ somewhere 폴더를 이리저리 옮겨도 CMAKE_PREFIX_PATH만 잘 지정하면
 ## vscode에서 cmake tools extension 사용하기
 ### 기본적인 정보
 - 프로젝트 폴더에서 ctrl+p로 커맨드 팔레트를 열면 CMake: Configure라는 명령이 보인다.  
-  만약 오른쪽 아래에 뜨는 팝업 메시지를 놓쳤다면 이렇게 수동으로 configure를 해줄 수 있다.
+  만약 오른쪽 아래에 뜨는 팝업 메시지를 놓쳤다면 이렇게 수동으로 configure를 해줄 수 있다.  
   한 번 configure 해주면 cmakelists.txt가 수정될때마다 자동으로 configure를 다시 해준다!
 - 화면 하단 바에서 빌드 타입, 컴파일러, 빌드 버튼, 디버그 버튼, 실행 버튼을 찾을 수 있다.  
   굳이 명령어를 치지 않아도 이 버튼들을 통해 같은 작업을 할 수 있어서 매우 편리하다.  
@@ -656,4 +656,32 @@ somewhere 폴더를 이리저리 옮겨도 CMAKE_PREFIX_PATH만 잘 지정하면
 "cmake.debugConfig": {
     "console": "integratedTerminal"
 }
+```
+
+## vscode에서 vcpkg 사용하기
+#### 1. 일단 cmake 프로젝트 폴더에서 vcpkg를 clone한다
+```
+git clone https://github.com/microsoft/vcpkg
+.\vcpkg\bootstrap-vcpkg.bat
+```
+#### 2. .vscode/settings.json에 아래와 같은 내용을 끼워넣는다.
+```json
+"cmake.configureArgs": ["-DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake"]
+```
+- vcpkg를 프로젝트 밑에 독립적으로 설치했기 때문에 vcpkg가 사용하는 라이브러리설치 경로를 알려줄 필요가 있다.
+#### 3. vcpkg install ...로 원하는 라이브러리를 설치한다.
+- 설치할 때 --triplet 옵션을 눈여겨봐야한다.  
+  x64-windows, x86-windows 등 다양한 값이 가능한데 이게 빌드 시스템이랑 일치해야만 find_package()가 성공한다.
+- 설치가 끝나면 어떻게 사용하는지 친절하게 알려준다.  
+  그대로 복사해서 우리 프로젝트의 CMakeLists.txt에 붙여넣으면 된다.
+- 설치 완료 후 나오는 메시지 예시 (fmt)
+```
+The package fmt provides CMake targets:
+
+    find_package(fmt CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE fmt::fmt)
+
+    # Or use the header-only version
+    find_package(fmt CONFIG REQUIRED)
+    target_link_libraries(main PRIVATE fmt::fmt-header-only)
 ```
