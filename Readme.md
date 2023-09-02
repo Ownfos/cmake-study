@@ -685,3 +685,63 @@ The package fmt provides CMake targets:
     find_package(fmt CONFIG REQUIRED)
     target_link_libraries(main PRIVATE fmt::fmt-header-only)
 ```
+
+## vscode에서 Google Test로 unit test 사용하기
+#### 1. Google Test 가져오기
+- vcpkg 등으로 직접 다운로드해도 되고 gtest 튜토리얼에 나온것처럼 fetch_content를 해도 된다.
+```cmake
+# 출처: http://google.github.io/googletest/quickstart-cmake.html
+# URL 중 archive/XXX.zip에서 XXX는 깃허브 리포지토리의 commit hash이며 최대한 자주 업데이트해달라고 나와있다.
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+```
+#### 2. [!!!매우 중요!!!] '최상위' CMakeLists.txt에서 enable_test() 하기
+- add_subdirectory()로 들어간 곳에서 해도 영향이 없으니 꼭 루트에 있는 CMakeLists.txt에 넣어줘야한다!!!
+```cmake
+cmake_minimum_required(VERSION 3.12)
+
+# 설정 등등
+
+enable_testing()
+add_subdirectory(test)
+```
+- 참고자료: [stackoverflow - ctest add tests in subdirectories](https://stackoverflow.com/questions/54550939/ctest-add-tests-in-subdirectories)
+#### 3. 테스트 코드 담은 executable 만들고 gtest_discover_tests()로 테스트 등록
+- gtest를 사용해서 유닛 테스트를 이것저것 담은 test.cpp를 만들었다고 가정하자.  
+  하나의 파일에 여러 TEST()가 있어도 되고, 여러 개의 테스트용 executable을 만들어도 된다.
+```c++
+#include <gtest/gtest.h>
+
+TEST(TestSuiteName, Test1)
+{
+    ASSERT_EQ(7 * 6, 42);
+}
+
+TEST(TestSuiteName, Test2)
+{
+    ASSERT_TRUE(true);
+}
+```
+- 이제 CMakeLists.txt에서 test.cpp에 담긴 TEST()를 읽고 테스트로 등록하도록 만들어보자.  
+  테스트 executable이 여러 개라면 같은 작업을 반복해주면 된다.
+```cmake
+add_executable(mytest test.cpp)
+
+# GTest 찾아서 링크
+find_package(GTest CONFIG REQUIRED)
+target_link_libraries(mytest PRIVATE GTest::gtest_main) # <-- 사용한 GTest 기능에 따라 GTest::gmock처럼 다른 라이브러리가 필요할 수도 있음
+
+# 테스트 등록
+include(GoogleTest)
+gtest_discover_tests(mytest)
+```
+#### 4. vscode에서 테스트 돌리고 결과 확인하기 
+- 커맨드 팔레드에서 CMake: Run Tests를 실행하거나 vscode 왼쪽 Testing 탭에서 UI로 테스트 실행 버튼을 눌러보자
+- 아래에 TERMINAL 탭 옆에 TEST RESULTS 탭이 생기며 실행한 테스트를 시간대별로 확인할 수 있다.
+- 왼쪽 Testing 탭에서는 마지막 테스트 결과를 빨간 체크와 초록 체크로 시각적으로 확인할 수 있고  
+  여러 테스트 중 하나만 골라서 실행하는 것도 가능하다.
