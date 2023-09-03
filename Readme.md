@@ -669,7 +669,11 @@ git clone https://github.com/microsoft/vcpkg
 "cmake.configureArgs": ["-DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake"]
 ```
 - vcpkg를 프로젝트 밑에 독립적으로 설치했기 때문에 vcpkg가 사용하는 라이브러리설치 경로를 알려줄 필요가 있다.
-#### 3. vcpkg install ...로 원하는 라이브러리를 설치한다.
+#### 3. 필요한 라이브러리를 설치한다.
+- 두 가지 방법이 있음:  
+  a) classic mode - 직접 설치  
+  b) manifest mode - 의존성만 명시, 설치는 vcpkg가 해줌
+#### 3-1. [classic mode] vcpkg install ... 명령을 직접 실행한다.
 - 설치할 때 --triplet 옵션을 눈여겨봐야한다.  
   x64-windows, x86-windows 등 다양한 값이 가능한데 이게 빌드 시스템이랑 일치해야만 find_package()가 성공한다.
 - 설치가 끝나면 어떻게 사용하는지 친절하게 알려준다.  
@@ -684,6 +688,18 @@ The package fmt provides CMake targets:
     # Or use the header-only version
     find_package(fmt CONFIG REQUIRED)
     target_link_libraries(main PRIVATE fmt::fmt-header-only)
+```
+#### 3-2. [manifest mode] 루트 디렉토리에 vcpkg.json 파일을 만든다.
+- 마이크로소프트에서 권장하는 사용 방식이다.
+- json 파일 안에 필요한 라이브러리의 이름과 버전을 적어두면 configure 시점에 자동으로 install을 해준다!
+```json
+{
+    "dependencies": [
+        "gtest",
+        "fmt"
+    ]
+}
+-
 ```
 
 ## vscode에서 Google Test로 unit test 사용하기
