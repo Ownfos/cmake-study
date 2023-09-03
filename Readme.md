@@ -722,6 +722,7 @@ cmake_minimum_required(VERSION 3.12)
 
 # 설정 등등
 
+include(CTest) # <-- 생략하면 DartConfigure.tlc 없다며 ctest가 제대로 작동하지 않음
 enable_testing()
 add_subdirectory(test)
 ```
