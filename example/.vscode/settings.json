@@ -1,0 +1,11 @@
+{
+    "cmake.configureOnOpen": true,
+
+    // Enable terminal output on debug sessions
+    "cmake.debugConfig": {
+        "console": "integratedTerminal"
+    },
+
+    // Vcpkg setting for cmake
+    "cmake.configureArgs": ["-DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake"]
+}
