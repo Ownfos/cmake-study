@@ -791,3 +791,23 @@ target_link_libraries(calculator PRIVATE calculator_lib)
 add_executable(test test.cpp)
 target_link_libraries(test PRIVATE calculator_lib)
 ```
+## Case Study: fmt의 install tree 구조
+```
+include/
+├─ fmt/
+│  ├─ format.h <-- public headers
+│  ├─ ...
+lib/
+├─ cmake/
+│  ├─ fmt/ <-- cmake 튜토리얼에서 나온대로 "[설치경로]/lib/cmake/[라이브러리 이름]" 패턴을 따르고 있음
+│  │  ├─ fmt-config-version.cmake
+│  │  ├─ fmt-config.cmake
+│  │  ├─ fmt-targets-debug.cmake
+│  │  ├─ fmt-targets-release.cmake
+│  │  ├─ fmt-targets.cmake
+├─ pkgconfig/
+│  ├─ fmt.pc <-- 뭔지 모르겠음
+├─ fmt.lib <-- Release 바이너리
+├─ fmtd.lib <-- Debug 바이너리
+
+```
