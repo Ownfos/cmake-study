@@ -645,7 +645,14 @@ target_link_libraries(myexec mylib::mylib)
 ```
 이렇게 완성한 install 폴더는 절대경로를 사용하지 않고 relocatable하기 때문에  
 somewhere 폴더를 이리저리 옮겨도 CMAKE_PREFIX_PATH만 잘 지정하면 링크에 성공한다!  
-만약 캐시 변수를 사용하거나 절대 경로를 넣었다면 불가능했을 것이다.
+만약 캐시 변수를 사용하거나 절대 경로를 넣었다면 불가능했을 것이다.  
+버전 정보를 담은 ```<PackageName>ConfigVersion.cmake```파일도 만들어주면 좋지만 없어도 링크는 가능하다.
+```cmake
+write_basic_package_version_file(mylibConfigVersion
+  VERSION 1.0.0
+  COMPATIBILITY AnyNewerVersion
+)
+```
 ### 참고자료
 - [CMake 공식 export 튜토리얼](https://cmake.org/cmake/help/latest/guide/importing-exporting/index.html)
 - [CMake documentation - xxxConfig.cmake를 놓는 일반적인 위치에 대한 내용이 담긴 페이지](https://cmake.org/cmake/help/v3.22/guide/using-dependencies/index.html)

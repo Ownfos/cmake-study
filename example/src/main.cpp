@@ -1,4 +1,5 @@
 #include "Vector3.h"
+#include "rng/Random.h"
 #include <iostream>
 #include <format>
 
@@ -16,4 +17,10 @@ int main()
     
     print(v1 + v2);
     print(v1 - v2);
+
+    auto rand = rng::Random();
+    for (int i = 0; i < 10; ++i)
+    {
+        std::cout << rand.RandInt(0, 10);
+    }
 }

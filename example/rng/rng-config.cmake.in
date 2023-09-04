@@ -1,0 +1,7 @@
+@PACKAGE_INIT@
+
+if(NOT TARGET rng::rng)
+    include(${CMAKE_CURRENT_LIST_DIR}/rng-targets.cmake)
+endif()
+
+check_required_components(rng)

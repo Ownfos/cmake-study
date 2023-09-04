@@ -3,6 +3,12 @@
 1. Directory structure for a CMake project
 2. Using vcpkg in manifest mode to manage external library dependencies
 3. Using GoogleTest to make use of unit tests
+5. Making a library that supports installing a relocatable package
+- The 'rng' folder is designed as an independent library
+- Separately building and installing 'rng' would have worked,  
+but I decided to put it as a subfolder so that we can just ```add_subdirectory()``` and use it.
+- Try running ```cmake --install build --config Debug --prefix whatever/path/you/want```  
+after building the example if you want to see how 'rng' looks like when it's installed.
 ## How to build
 ### 1. Clone vcpkg
 ```
