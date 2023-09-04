@@ -791,7 +791,8 @@ target_link_libraries(calculator PRIVATE calculator_lib)
 add_executable(test test.cpp)
 target_link_libraries(test PRIVATE calculator_lib)
 ```
-## Case Study: fmt의 install tree 구조
+## Case Study: fmt
+### Install Tree 구조
 ```
 include/
 ├─ fmt/
@@ -809,5 +810,38 @@ lib/
 │  ├─ fmt.pc <-- 뭔지 모르겠음
 ├─ fmt.lib <-- Release 바이너리
 ├─ fmtd.lib <-- Debug 바이너리
+```
+### install()
+- 딱히 shared library나 executable은 없어보이는데도 install destination 네 개를 전부 명시했다
+- public header는 라이브러리 이름과 동일한 폴더 아래에 놓는게 일반적인 것 같다.  
+C++의 유명인사 boost 라이브러리들도 헤더가 모두 boost라는 폴더 안에 있다.  
+install tree뿐만 아니라 소스 자체의 include폴더에도 include/fmt 밑에 헤더가 들어있다.
+```cmake
+# Install the library and headers.
+install(TARGETS ${INSTALL_TARGETS} EXPORT ${targets_export_name}
+        LIBRARY DESTINATION ${FMT_LIB_DIR}
+        ARCHIVE DESTINATION ${FMT_LIB_DIR}
+        PUBLIC_HEADER DESTINATION "${FMT_INC_DIR}/fmt"
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+```
+### fmt-config.cmake.in
+- ```if (NOT TARGET <target>)```은 cmake에 ```<target>```이라는 target이 없는 경우에 실행되는 조건문으로  
+헤더 가드에 나오는 ```#ifndef ... #define ...```과 비슷한 역할을 하는 것으로 보임.  
+다른 라이브러리에서도 종종 사용하는 흔한 구문이라고 한다.
+- ```${targets_export_name}```은 ```install(TARGETS ... EXPORT ...)```에 등장하는 export set의 이름.
+```cmake
+@PACKAGE_INIT@
+
+if (NOT TARGET fmt::fmt)
+  include(${CMAKE_CURRENT_LIST_DIR}/@targets_export_name@.cmake)
+endif ()
+
+check_required_components(fmt)
 
 ```
+### 유닛 테스트
+- test 폴더에 상당히 많은 테스트가 들어있음
+- gtest를 사용하고 있음에도 gtest_discover_tests() 대신 기본 명령인 add_test()를 사용한다.
+- 루트 CMakeLists.txt에서 ```add_subdirectory(test)```를 하기 전에 ```enable_testing()```만 호출함.  
+```include(CTest)```가 없어서 그런지 여기서 테스트를 돌려보려 해도 테스트가 아무것도 없다고 나온다.  
+google test documentation에도 ```include(CTest)```가 필요하다는 내용은 없었던 것 같은데 왜 나는 안 되는지 모르겠다...
