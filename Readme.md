@@ -390,7 +390,7 @@ mylib/
 #### 다른 방법: ```<CONFIG>_PREFIX``` 프로퍼티 설정하기
 ```cmake
 # <CONFIG>_PREFIX라는 프로퍼티를 설정하면 결과물의 파일 이름에 지정한 prefix를 붙일 수 있다.
-# 이는 fmt라는 유명한 라이브러리에서도 이 방법을 사용해 Release와 Debug 바이너리를 이름으로 구분한다.
+# fmt라는 유명한 라이브러리에서도 이 방법을 사용해 Release와 Debug 바이너리를 이름으로 구분한다.
 # ex) fmt.lib <-- Release
 #     fmtd.lib <-- Debug
 # 
