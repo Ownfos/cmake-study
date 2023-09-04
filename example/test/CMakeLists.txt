@@ -1,19 +1,21 @@
-# Make unit test targets
-add_executable(test1 test1.cpp)
-add_executable(test2 test2.cpp)
-
-# Link libraries
+# Prepare GoogleTest
 find_package(GTest CONFIG REQUIRED)
-target_link_libraries(test1 PRIVATE
-    myproj_lib
-    GTest::gtest_main
-)
-target_link_libraries(test2 PRIVATE
-    myproj_lib
-    GTest::gtest_main
-)
-
-# Register unit tests
 include(GoogleTest)
-gtest_discover_tests(test1)
-gtest_discover_tests(test2)
+
+# Add tests
+function(add_test_executable file_name)
+    # Create target
+    add_executable(${file_name} ${file_name}.cpp)
+
+    # Link main program and gtest
+    target_link_libraries(${file_name} PRIVATE
+        myproj_lib
+        GTest::gtest_main
+    )
+
+    # Register tests
+    gtest_discover_tests(${file_name})
+endfunction()
+
+add_test_executable(test1)
+add_test_executable(test2)

@@ -733,7 +733,7 @@ cmake_minimum_required(VERSION 3.12)
 
 # 설정 등등
 
-include(CTest) # <-- 생략하면 DartConfigure.tlc 없다며 ctest가 제대로 작동하지 않음
+include(CTest) # <-- DartConfigure.tlc 없다며 ctest가 제대로 작동하지 않을 경우 추가
 enable_testing()
 add_subdirectory(test)
 ```
@@ -843,5 +843,11 @@ check_required_components(fmt)
 - test 폴더에 상당히 많은 테스트가 들어있음
 - gtest를 사용하고 있음에도 gtest_discover_tests() 대신 기본 명령인 add_test()를 사용한다.
 - 루트 CMakeLists.txt에서 ```add_subdirectory(test)```를 하기 전에 ```enable_testing()```만 호출함.  
-```include(CTest)```가 없어서 그런지 여기서 테스트를 돌려보려 해도 테스트가 아무것도 없다고 나온다.  
-google test documentation에도 ```include(CTest)```가 필요하다는 내용은 없었던 것 같은데 왜 나는 안 되는지 모르겠다...
+### export()에 namespace를 사용하는 이유
+- 주석을 보면 namespace를 붙일 경우 cmake에서 더 나은 diagnostic를 제공하기 때문이라고 나와있다.
+### 언어 표준 설정
+- ```set(CMAKE_CXX_STANDARD ...)``` 대신 ```target_compile_features(fmt PUBLIC cxx_std_11)```을 사용한다
+- 일부 add_test()의 경우 ```-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}```를 옵션으로 넘겨준다
+- ```set(CMAKE_CXX_STANDARD_REQUIRED True)```는 찾을 수 없었다
+- 검색해보니 CMAKE_CXX_STANDARD 대신 target_compile_features를 사용하는 것이 좋다고 한다.  
+참고자료: [stackoverflow - cmake cxx standard vs target compile features](https://stackoverflow.com/questions/70667513/cmake-cxx-standard-vs-target-compile-features)
