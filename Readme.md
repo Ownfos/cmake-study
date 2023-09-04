@@ -387,6 +387,17 @@ mylib/
 ├─ mylib.cpp
 ├─ CMakeLists.txt
 ```
+#### 다른 방법: ```<CONFIG>_PREFIX``` 프로퍼티 설정하기
+```cmake
+# <CONFIG>_PREFIX라는 프로퍼티를 설정하면 결과물의 파일 이름에 지정한 prefix를 붙일 수 있다.
+# 이는 fmt라는 유명한 라이브러리에서도 이 방법을 사용해 Release와 Debug 바이너리를 이름으로 구분한다.
+# ex) fmt.lib <-- Release
+#     fmtd.lib <-- Debug
+# 
+# 이렇게 하면 위에서처럼 $<CONFIG>를 사용해 다른 폴더에 바이너리를 넣도록 할 필요가 없어진다.
+# 과정이 어떻든 Release, Debug 등 다른 설정으로 빌드한 바이너리가 덮어씌워지는 상황만 막으면 되기 때문!
+set_target_property(mylib PROPERTIES DEBUG_PREFIX d)
+```
 ### Step 4) ```install(EXPORT ...)```를 사용해 imported target을 만들자
 ```cmake
 cmake_minimum_required(VERSION 3.10)
