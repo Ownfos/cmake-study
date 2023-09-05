@@ -862,3 +862,34 @@ check_required_components(fmt)
 - ```set(CMAKE_CXX_STANDARD_REQUIRED True)```는 찾을 수 없었다
 - 검색해보니 CMAKE_CXX_STANDARD 대신 target_compile_features를 사용하는 것이 좋다고 한다.  
 참고자료: [stackoverflow - cmake cxx standard vs target compile features](https://stackoverflow.com/questions/70667513/cmake-cxx-standard-vs-target-compile-features)
+
+## 깔끔하고 안전한 CMake 프로젝트를 위해 기억해두면 좋은 원칙들
+### [CppCon 2017: Mathieu Ropert “Using Modern CMake Patterns to Enforce a Good Modular Design”](https://www.youtube.com/watch?v=eC9-iRN2b04)
+#### 1. 모든 것에 있어서 target 단위로 접근할 것
+- 어떤 대상에 대한 세부 사항은 대응되는 CMakeLists.txt 내부에서만 알아도 되게 만들어야 한다.
+- 예를 들어 A -> B -> C 순서의 종속성을 갖는 프로젝트가 있고 하자.  
+A를 사용하기 위해서는 -AAA라는 컴파일러 옵션을 사용해야 하고  
+B를 사용하기 위해서는 -BB라는 컴파일러 옵션을 사용해야 한다면  
+C는 A와 B를 세세히 살펴본 후 -AAA와 -BB가 필요하다는 것을 발견하고 -AAA -BBB를 컴파일러에게 넘겨줘야 한다.  
+하지만 현실적으로 C가 A에 종속적인지조차 바로 알아보기 힘들다는 문제가 있다.  
+이런 문제는 CMake에게 "C는 B를 사용한다"라고 알려주기만 하면 자동으로 처리하게 해야한다.
+```cmake
+# Not recommended (affects ALL target)
+include_directories()
+link_libraries()
+set(CMAKE_CXX_STANDARD xxx)
+
+# Use these instread (affects a single target)
+target_include_directories()
+target_link_libraries()
+target_compile_features()
+```
+#### 2. PUBLIC PRIVATE INTERFACE를 잊지 말고 명시할 것
+#### 3. 라이브러리의 경우 find_package(), target_link_libraries()만으로 사용 가능하게 만들 것
+- 옛날에는 foo_INCLUDE_DIR, foo_LINK_LIBRARIES 등 변수를 제공하는게 일반적이었다
+- 지금은 xxx-config.cmake, xxx-targets.cmake 등을 사용하는 import-export 방식을 사용하며  
+include directory 등 PUBLIC으로 지정된 속성은 라이브러리를 사용하는 대상에게도 자동으로 적용되기 때문에  
+target_link_libraries()만으로도 모든 작업이 가능하다.
+#### 4. 3.0 이상의 CMake를 사용할 것
+#### 5. 외부에 있는 폴더를 target_include_directories()로 추가하지 않을 것
+#### 6. 외부로 공개될 필요가 없는 속성은 PRIVATE으로 지정할 것
