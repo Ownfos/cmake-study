@@ -722,6 +722,22 @@ The package fmt provides CMake targets:
     ]
 }
 ```
+### ※ manifest mode 사용 시 주의사항
+- vcpkg.json은 루트 디렉토리에 있어야 하며 하위 디렉토리에 있는 파일은 무시된다
+- 다음과 같은 상황에서는 하위 디렉토리에 있는 라이브러리의 종속성을 vcpkg가 해결하지 못한다
+```
+myproj/ <-- 여기서 cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="vcpkg/scripts/buildsystems/vcpkg.cmake" 실행
+├─ mylib/
+│  ├─ vcpkg.json <-- mylib의 종속성 정보 (처리 x, 필요한 라이브러리가 없다며 오류 발생)
+│  ├─ CMakeLists.txt
+├─ vcpkg.json <-- myproj의 종속성 정보 (처리 o)
+├─ CMakeLists.txt
+```
+- 아직은 해결책이 없어서 최상위 vcpkg.json에 하위 디렉토리에 필요한 라이브러리 목록까지 추가하거나  
+mylib 밑에도 vcpkg를 깔아서 패키지 설치를 각각 해주는 방법으로 만족해야 한다...
+- add_subdirectory()를 포기한다면 아예 외부 프로젝트로 만들어서 따로 빌드하고  
+install해서 find_package(mylib CONFIG REQUIRED)를 해버릴 수도 있다.
+- 참고자료: [vcpkg Github Issue - How do I use nested vcpkg manifests in submodules/sub-projects?](https://github.com/microsoft/vcpkg/issues/15279)
 
 ## vscode에서 Google Test로 unit test 사용하기
 #### 1. Google Test 가져오기
