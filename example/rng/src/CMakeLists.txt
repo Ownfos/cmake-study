@@ -1,12 +1,17 @@
 # Create a build target
-add_library(${PROJECT_NAME} Random.cpp)
+add_library(${PROJECT_NAME} STATIC Random.cpp)
+
+# Make an alias rng::rng so that we can maintain same usage for two cases:
+# 1. find_package() to load a preinstalled library
+# 2. place the library source inside the build tree and "add_subdirectory(rng)"
+add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
 # Append 'd' to the .lib file to distinguish Debug/Release binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX d)
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
 target_include_directories(${PROJECT_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
@@ -17,7 +22,7 @@ install(TARGETS ${PROJECT_NAME}
     ARCHIVE DESTINATION lib
     PUBLIC_HEADER DESTINATION include
 )
-install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/../include/rng/Random.h
+install(FILES ${PROJECT_SOURCE_DIR}/include/rng/Random.h
     DESTINATION include/rng
 )
 
@@ -33,12 +38,12 @@ set(PackageConfig ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake)
 set(PackageVersion ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config-version.cmake)
 
 include(CMakePackageConfigHelpers)
-configure_package_config_file(${CMAKE_CURRENT_SOURCE_DIR}/../rng-config.cmake.in
+configure_package_config_file(${PROJECT_SOURCE_DIR}/rng-config.cmake.in
     ${PackageConfig}
     INSTALL_DESTINATION ${PackageCMakeDir}
 )
 write_basic_package_version_file(${PackageVersion}
-  VERSION 1.0.0
+  VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
 )
 

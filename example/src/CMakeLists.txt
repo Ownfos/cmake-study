@@ -10,4 +10,7 @@ add_executable(myproj main.cpp)
 # The library rng is designed to be used as an exported package,
 # but this example just added the project folder using add_subdirectory()
 # so that myproj can use it without install() and find_package() stuff.
-target_link_libraries(myproj PRIVATE myproj_lib rng)
+#
+# Since rng provides an alias rng::rng,
+# we can treat the library as if it really had a namespace generated while exporting.
+target_link_libraries(myproj PRIVATE myproj_lib rng::rng)

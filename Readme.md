@@ -2,6 +2,7 @@
 ## CMake를 처음으로 배우는 경우 읽어볼만한 사이트
 - [CMake 공식 튜토리얼](https://cmake.org/cmake/help/latest/guide/tutorial/index.html)
 - [CMake 할때 쪼오오금 도움 되는 문서](https://gist.github.com/luncliff/6e2d4eb7ca29a0afd5b592f72b80cb5c)
+- [Effective Modern CMake](https://gist.github.com/mbinna/c61dbb39bca0e4fb7d1f73b0d66a4fd1)
 
 ## CMAKE_SOURCE_DIR vs CMAKE_CURRENT_SOURCE_DIR
 - 전자는 cmake를 실행한 최상위 CMakeLists.txt의 경로
