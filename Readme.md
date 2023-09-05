@@ -296,6 +296,9 @@ target_include_libraries(test PUBLIC lib)
 #### INTERFACE
 - producer는 필요 없지만 consumer는 필요로 하는 경우 사용
 - consumer에게 미치는 영향은 PUBLIC과 동일
+- header only library를 만드는 경우 유용하다.  
+lib파일을 생성하지는 않지만 일단 target을 생성하고 target_include_directory()로 폴더를 지정하면  
+라이브러리의 세부 사항을 유저가 알 필요 없이 target_link_libraries()만으로 사용할 수 있기 때문
 #### PRIVATE
 - producer는 필요하지만 consumer에게는 숨기고 싶은 경우 사용
 - consumer는 producer에서 PRIVATE으로 지정한 라이브러리와 include directory를 알 수 없음
