@@ -915,8 +915,11 @@ check_required_components(fmt)
 ### 언어 표준 설정
 - ```set(CMAKE_CXX_STANDARD ...)``` 대신 ```target_compile_features(fmt PUBLIC cxx_std_11)```을 사용한다
 - 일부 add_test()의 경우 ```-DCMAKE_CXX_STANDARD=${CMAKE_CXX_STANDARD}```를 옵션으로 넘겨준다
-- ```set(CMAKE_CXX_STANDARD_REQUIRED True)```는 찾을 수 없었다
+- ```set(CMAKE_CXX_STANDARD_REQUIRED True)```는 찾을 수 없었다.  
+직접 해보니까 원래 REQUIRED 없어도 잘 작동하는 옵션인 것 같았다.
 - 검색해보니 CMAKE_CXX_STANDARD 대신 target_compile_features를 사용하는 것이 좋다고 한다.  
+언어 표준을 지정하는게 아니라 최소 이 이상은 사용해야된다고 알려주는 속성이고  
+PUBLIC으로 지정할 경우 링크한 대상에게도 propagate되어서 유용하다는 답글이 달려있다.  
 참고자료: [stackoverflow - cmake cxx standard vs target compile features](https://stackoverflow.com/questions/70667513/cmake-cxx-standard-vs-target-compile-features)
 
 ## 깔끔하고 안전한 CMake 프로젝트를 위해 기억해두면 좋은 원칙들
