@@ -487,6 +487,46 @@ include(엄청복잡한경로/somewhere/lib/cmake/mylib/mylibTargets.cmake)
 # 추가적인 설정 없이 mylib.h도 사용할 수 있다.
 target_link_libraries(test PUBLIC mylib::mylib)
 ```
+#### ※ 라이브러리 namespace를 위한 alias
+- install(EXPORT ... NAMESPACE ...)를 거치면 find_package()로 찾은 target 앞에 namespace가 prefix로 붙게 된다
+- 하지만 add_subdirectory()로 해당 라이브러리의 소스 폴더를 추가한 경우 namespace가 붙지 않은 원래 이름으로 링크해야 한다
+```cmake
+# Case 1) using cmake --install and find_package()
+find_package(mylib)
+target_link_libraries(${PROJECT_NAME} PRIVATE mylib::mylib)
+
+# Case 2) using add_subdirectory()
+add_subdirectory(mylib)
+target_link_libraries(${PROJECT_NAME} PRIVATE mylib)
+```
+- 이럴 경우 상위 프로젝트에서 동일한 링크 방법을 사용할 수 있도록 라이브러리 별명을 붙일 수 있다
+```cmake
+# mylib::mylib는 mylib의 별명이다
+# c++로 따지면 using mylib::mylib = mylib;
+add_library(mylib::mylib ALIAS mylib)
+```
+- 아예 find_package()까지 매크로로 수정해서 상위 프로젝트가 코드를 수정할 일이 없어야 한다는 의견도 있다.  
+꼭 필요한건지 확신이 서지 않아서 해보진 않았음...
+```cmake
+# 영상 내용 및 슬라이드에 등장한 코드 정리
+# 1) prebuilt library는 CMAKE_PREFIX_PATH에 설치한다
+#    => 설치한 폴더 위치를 CMAKE_PREFIX_PATH로 알려주라는 의미인듯
+set(CMAKE_PREFIX_PATH "/prefix")
+# 2) subproject든 prebuilt library든 상관 없이 아래와 같은 코드로 사용할 수 있어야 한다
+find_package(Foo)
+target_link_libraries(mytarget PRIVATE Foo::Foo)
+# 3) 2를 달성하기 위해서는 라이브러리마다 namespace가 붙은 ALIAS를 제공해야 하며
+#    subproject인 경우 find_package()가 아무 동작도 하지 않게 수정해야 한다.
+# 3-1) 모종의 방법을 써서 subproject로 사용하는 라이브러리의 목록을 as_subproject라는 리스트에 담아둔다
+set(as_subproject Foo)
+# 3-2) 매크로를 사용해 find_package()에 넘어온 라이브러리가 as_subproject에 없는 경우에만 탐색하도록 만든다
+macro(find_package)
+  if(NOT "${ARG0}" IN_LIST as_subproject)
+    _find_package(${ARGV})
+  endif()
+endmacro()
+```
+- 참고자료: [C++Now 2017: Daniel Pfeifer “Effective CMake"](https://www.youtube.com/watch?v=bsXLMQ6WgIk&t=3030s)
 #### 외전: target_include_directories()에서 build interface와 install interface를 각각 설정해야 하는 이유
 ```cmake
 # 실제로 파일을 빌드하려면 언젠간 절대경로가 필요해진다.
